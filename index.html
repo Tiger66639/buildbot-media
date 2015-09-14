@@ -38,673 +38,321 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
-        <h1>
-<a id="buildbot-presentation-framework" class="anchor" href="#buildbot-presentation-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Buildbot Presentation Framework</h1>
+        <p>\documentclass[conference]{IEEEtran}
+\usepackage{fancyvrb}
+\usepackage{url}
+\begin{document}
+\title{Automating Build, Test, and Release with Buildbot}</p>
 
-<p>This directory, <code>media/presentation-framework</code>, contains a copy of reveal.js,
-ready for use for Buildbot presentations.</p>
+<p>\author{\IEEEauthorblockN{Dustin J. Mitchell}
+\IEEEauthorblockA{Mozilla, Inc.\
+Email: <a href="mailto:dustin@v.igoro.us">dustin@v.igoro.us</a>}
+\IEEEauthorblockN{Tom Prince}
+\IEEEauthorblockA{Email: <a href="mailto:tom.prince@ualberta.net">tom.prince@ualberta.net</a>}
+}</p>
 
-<p>To use it, copy it to another subdirectory of media/, named after your event,
-and start hacking index.html.  When you're done and ready to make your work
-available to others, make a Github pull request for Buildbot and the
-maintainers will merge your presentation back into the upstream repository.</p>
+<p>\maketitle</p>
 
-<p>Reveal.js is MIT-licensed, and the slide content here is licensed under CC-SA,
-so you're free to do what you'd like under those two licenses.</p>
+<p>\begin{abstract}
+Buildbot is a mature framework for building continuous integration systems which supports parallel execution of jobs across multiple platforms, flexible integration with version-control systems, extensive status reporting, and more.
+Beyond the capabilities it shares with similar tools, Buildbot has a number of unique strengths and capabilities, some of them particularly geared toward release processes.
+This paper summarizes Buildbot's structure, contrasts the framework with related tools, describes some advanced configurations, and highlights ongoing improvements to the framework.\footnote{This work is copyright (c) 2013 Dustin J. Mitchell and Tom Prince.  This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. To view a copy of this license, visit <a href="http://creativecommons.org/licenses/by-sa/3.0/.">http://creativecommons.org/licenses/by-sa/3.0/.</a>}
+\end{abstract}</p>
 
-<p>And now, the original reveal.js README:</p>
+<p>\IEEEpeerreviewmaketitle</p>
 
-<h1>
-<a id="revealjs-" class="anchor" href="#revealjs-" aria-hidden="true"><span class="octicon octicon-link"></span></a>reveal.js <a href="https://travis-ci.org/hakimel/reveal.js"><img src="https://travis-ci.org/hakimel/reveal.js.png?branch=master" alt="Build Status"></a>
-</h1>
+<p>\section{Introduction}</p>
 
-<p>A framework for easily creating beautiful presentations using HTML. <a href="http://lab.hakim.se/reveal-js/">Check out the live demo</a>.</p>
+<p>Buildbot is a continuous integration (CI) framework which has been in use for well over 10 years\cite{buildbot-031}.
+While it began as a simple build-and-test tool, it has grown into an advanced  framework supporting continuous integration testing, continuous deployment, and release engineering.
+Its design allows an installation to grow with its requirements, beginning with a simple configuration and growing into a multi-master configuration with complex coordination of builds, each containing many sophisticated steps.
+This flexibility has led to its use in a number of high-profile open-source projects, including Chromium, WebKit, Firefox, Python, and Twisted\cite{success-stories}.</p>
 
-<p>reveal.js comes with a broad range of features including <a href="https://github.com/hakimel/reveal.js#markup">nested slides</a>, <a href="https://github.com/hakimel/reveal.js#markdown">markdown contents</a>, <a href="https://github.com/hakimel/reveal.js#pdf-export">PDF export</a>, <a href="https://github.com/hakimel/reveal.js#speaker-notes">speaker notes</a> and a <a href="https://github.com/hakimel/reveal.js#api">JavaScript API</a>. It's best viewed in a browser with support for CSS 3D transforms but <a href="https://github.com/hakimel/reveal.js/wiki/Browser-Support">fallbacks</a> are available to make sure your presentation can still be viewed elsewhere.</p>
+<p>Buildbot is but one of many tools commonly used for build, test, and release because, in such an active ecosystem, each tool has strengths that make it the best choice for certain purposes.
+Buildbot's niche is complex applications requiring extensive customization.</p>
 
-<h4>
-<a id="more-reading" class="anchor" href="#more-reading" aria-hidden="true"><span class="octicon octicon-link"></span></a>More reading:</h4>
+<p>This paper briefly summarizes Buildbot's structure for background purposes then compares its framework to other tools.
+We also describes some of the tool's unique features and capabilities and finishes with a description of ongoing work in the Buildbot development community.</p>
 
-<ul>
-<li>
-<a href="#installation">Installation</a>: Step-by-step instructions for getting reveal.js running on your computer.</li>
-<li>
-<a href="https://github.com/hakimel/reveal.js/wiki/Changelog">Changelog</a>: Up-to-date version history.</li>
-<li>
-<a href="https://github.com/hakimel/reveal.js/wiki/Example-Presentations">Examples</a>: Presentations created with reveal.js, add your own!</li>
-<li>
-<a href="https://github.com/hakimel/reveal.js/wiki/Browser-Support">Browser Support</a>: Explanation of browser support and fallbacks.</li>
-</ul>
+<p>\section{Buildbot's Structure}</p>
 
-<h2>
-<a id="slides" class="anchor" href="#slides" aria-hidden="true"><span class="octicon octicon-link"></span></a>Slides</h2>
+<p>At its core, Buildbot is a job scheduling system: it queues jobs (called \emph{builds} for historical reasons), executes the jobs when the required resources are available, and reports the results.
+Refer to the Buildbot documentation\cite{bb-introduction} for more detail.</p>
 
-<p>Presentations are written using HTML or markdown but there's also an online editor for those of you who prefer a graphical interface. Give it a try at <a href="http://slid.es">http://slid.es</a>.</p>
+<p>Buildbot's \emph{change sources} watch for commits (generically called \emph{changes}).
+The built-in change sources support the most common version-control systems with flexible configuration to support a variety of deployments.
+\emph{Schedulers} react to new data from change sources, external events, or triggers based on clock time (e.g., for a nightly build), and add new \emph{build requests} to the queue.</p>
 
-<h2>
-<a id="instructions" class="anchor" href="#instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions</h2>
+<p>Each build request comes with a set of source stamps identifying the code from each codebase used for a build.
+A \emph{source stamp} represents a particular revision and branch in a source code repository.
+Build requests also specify a \emph{builder} that should perform the task and a set of \emph{properties}, arbitrary key-value pairs giving further detail about the requested build.
+Each \emph{builder} defines the steps to take in executing a particular type of build.
+Once the request is selected for execution, the steps are performed sequentially.
+Each build is executed on exactly one slave.</p>
 
-<h3>
-<a id="markup" class="anchor" href="#markup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Markup</h3>
+<p>Buildbot has a distributed master-slave architecture where the \emph{masters} instruct the \emph{slaves} to perform each step of a build in sequence.
+The slave portion of Buildbot is platform-independent, and many slaves can be connected to each master, running builds in parallel.
+A slave may execute multiple builds simultaneously, as long as they are for different builders.</p>
 
-<p>Markup hierarchy needs to be <code>&lt;div class="reveal"&gt; &lt;div class="slides"&gt; &lt;section&gt;</code> where the <code>&lt;section&gt;</code> represents one slide and can be repeated indefinitely. If you place multiple <code>&lt;section&gt;</code>'s inside of another <code>&lt;section&gt;</code> they will be shown as vertical slides. The first of the vertical slides is the "root" of the others (at the top), and it will be included in the horizontal sequence. For example:</p>
+<p>Once a build is complete, the framework reports the results---log files and step status---to users and developers via \emph{status listeners}.
+Buildbot has built-in support for reporting via web, email, irc, Tinderbox, and gerrit.</p>
 
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">div</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>reveal<span class="pl-pds">"</span></span>&gt;
-    &lt;<span class="pl-ent">div</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>slides<span class="pl-pds">"</span></span>&gt;
-        &lt;<span class="pl-ent">section</span>&gt;Single Horizontal Slide&lt;/<span class="pl-ent">section</span>&gt;
-        &lt;<span class="pl-ent">section</span>&gt;
-            &lt;<span class="pl-ent">section</span>&gt;Vertical Slide 1&lt;/<span class="pl-ent">section</span>&gt;
-            &lt;<span class="pl-ent">section</span>&gt;Vertical Slide 2&lt;/<span class="pl-ent">section</span>&gt;
-        &lt;/<span class="pl-ent">section</span>&gt;
-    &lt;/<span class="pl-ent">div</span>&gt;
-&lt;/<span class="pl-ent">div</span>&gt;</pre></div>
+<p>The Buildbot master and slave are both implemented as Python daemons.
+Small Buildbot installations are generally composed of one master and tens of slaves while larger installations run tens of masters with hundreds or thousands of slaves.</p>
 
-<h3>
-<a id="markdown" class="anchor" href="#markdown" aria-hidden="true"><span class="octicon octicon-link"></span></a>Markdown</h3>
+<p>\section{Related Work}</p>
 
-<p>It's possible to write your slides using Markdown. To enable Markdown, add the <code>data-markdown</code> attribute to your <code>&lt;section&gt;</code> elements and wrap the contents in a <code>&lt;script type="text/template"&gt;</code> like the example below.</p>
+<p>The ecosystem of continuous integration testing tools is a busy one.
+The Thoughtworks feature matrix\cite{ci-feature-matrix} lists 28 packages and does not consider cloud-based services such as Travis-CI or TDDium.</p>
 
-<p>This is based on <a href="https://gist.github.com/1343518">data-markdown</a> from <a href="https://github.com/paulirish">Paul Irish</a> modified to use <a href="https://github.com/chjj/marked">marked</a> to support <a href="https://help.github.com/articles/github-flavored-markdown">Github Flavoured Markdown</a>. Sensitive to indentation (avoid mixing tabs and spaces) and line breaks (avoid consecutive breaks).</p>
+<p>\subsection{A Framework for Continuous Integration}</p>
 
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span> <span class="pl-e">data-markdown</span>&gt;
-    &lt;<span class="pl-ent">script</span> <span class="pl-e">type</span>=<span class="pl-s"><span class="pl-pds">"</span>text/template<span class="pl-pds">"</span></span>&gt;
-        ## Page title
+<p>Many CI packages, such as CruiseControl\cite{cruisecontrol-getting-started} or Jenkins\cite{meet-jenkins}, are structured as ready-to-use applications and embody assumptions about the structure of the project and its processes.
+Users fill in specific details like version control information and build process, but the fundamental design is fixed and options are limited to those envisioned by the authors.
+This arrangement suits the common cases quite well: there are cookie-cutter tools to automatically build and test Java applications, Ruby gems, and so on.
+These tools are not well-suited to more complex cases, such as mixed-language applications or complex release tasks, where those assumptions are violated.</p>
 
-        A paragraph with some text and a [link](http://hakim.se).
-    &lt;/<span class="pl-ent">script</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
+<p>In contrast, Buildbot is designed as a framework: it provides tools for continuous integration and release management, allowing users to implement a system that suits their needs within that structure.
+While this makes Buildbot particularly well-suited to implementing the complex requirements of release engineering, it also means there is a steeper learning curve than with simpler CI applications.</p>
 
-<h4>
-<a id="external-markdown" class="anchor" href="#external-markdown" aria-hidden="true"><span class="octicon octicon-link"></span></a>External Markdown</h4>
+<p>\subsection{Configuration Interface}</p>
 
-<p>You can write your content as a separate file and have reveal.js load it at runtime. Note the separator arguments which determine how slides are delimited in the external file.</p>
+<p>Buildbot does not support web-based configuration but instead requires the user to edit the sample configuration file before the first run.
+This approach follows the UNIX philosophy of explicit, editable configuration---many Buildbot users keep their configuration in version control---and enables very fine control over the tool.
+In contrast, the Jenkins web interface invites the user to add a project via the web interface---no configuration file is visible to the user.
+The Buildbot community has discussed support for web-based configuration, e.g., \cite{config-discussion}, but no robust implementation has emerged.</p>
 
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span> <span class="pl-e">data-markdown</span>=<span class="pl-s"><span class="pl-pds">"</span>example.md<span class="pl-pds">"</span></span> <span class="pl-e">data-separator</span>=<span class="pl-s"><span class="pl-pds">"</span>^\n\n\n<span class="pl-pds">"</span></span> <span class="pl-e">data-vertical</span>=<span class="pl-s"><span class="pl-pds">"</span>^\n\n<span class="pl-pds">"</span></span>&gt;&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
+<p>\subsection{Batteries Included}</p>
 
-<h3>
-<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h3>
+<p>Like many CI applications, Jenkins ships with limited capabilities and uses a plug-in architecture\cite{jenkins-plugins} to add additional capabilities.
+In contrast, Buildbot includes many useful components in the base package and does not support plug-ins.
+These components address common needs such as version control integration, specialized build tools, and flexible status reporting.
+In many cases, the first implementation of Buildbot in an organization uses the built-in components, only replacing them with customized implementations as requirements grow.
+This approach mirrors Python's notion of a "Batteries Included" language.</p>
 
-<p>At the end of your page you need to initialize reveal by running the following code. Note that all config values are optional and will default as specified below.</p>
+<p>\subsection{Pull vs. Push}</p>
 
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
+<p>Job-queuing systems fall into two categories: push, where the central scheduler sends jobs to a worker it knows to be idle, and pull, where workers request jobs from the central scheduler.
+Tools like Tinderbox\cite{tinderbox} operate on a pull model whereby each tinderbox builds the latest revision in a tight loop, reporting status to the central tinderbox server.
+CruiseControl and Jenkins support both models.
+Buildbot operates exclusively on a push model: slaves simply perform the operations they receive from the master and then report the results.
+The advantage of Buildbot's approach is that configuration is centralized on the masters.
+However, it is not well suited to cases where slave resources also serve other purposes since the Buildbot master lacks the context to determine if a slave is ready to perform a build.</p>
 
-    <span class="pl-c">// Display controls in the bottom right corner</span>
-    controls<span class="pl-k">:</span> <span class="pl-c1">true</span>,
+<p>\section{Advanced Buildbot Configuration}</p>
 
-    <span class="pl-c">// Display a presentation progress bar</span>
-    progress<span class="pl-k">:</span> <span class="pl-c1">true</span>,
+<p>This section highlights some of Buildbot's high-level capabilities and focuses on those that are useful in release management and operation at scale.</p>
 
-    <span class="pl-c">// Push each slide change to the browser history</span>
-    history<span class="pl-k">:</span> <span class="pl-c1">false</span>,
+<p>\subsection{Expressive Configuration}</p>
 
-    <span class="pl-c">// Enable keyboard shortcuts for navigation</span>
-    keyboard<span class="pl-k">:</span> <span class="pl-c1">true</span>,
+<p>Buildbot's configuration file is simply a Python script.
+While a basic configuration can be written with little knowledge of Python, access to Python's power makes programmatic configuration trivial.
+For example, a configuration with several identical Windows slaves might include this snippet to automatically generate each slave configuration:</p>
 
-    <span class="pl-c">// Enable the slide overview mode</span>
-    overview<span class="pl-k">:</span> <span class="pl-c1">true</span>,
+<p>\begin{Verbatim}
+for n in range(0, 20):
+  c['slaves'].append(
+    BuildSlave('win-slave%d' % n, PASSWD))
+\end{Verbatim}</p>
 
-    <span class="pl-c">// Vertical centering of slides</span>
-    center<span class="pl-k">:</span> <span class="pl-c1">true</span>,
+<p>All of the concepts introduced above--change sources, schedulers, slaves, builders, and status listeners--can be configured in this Python script.
+Basic configurations can use the built-in support while more advanced configurations include custom implementations.</p>
 
-    <span class="pl-c">// Loop the presentation</span>
-    loop<span class="pl-k">:</span> <span class="pl-c1">false</span>,
+<p>Builder configurations include a list of steps to execute for each build (a \emph{build factory}\/).
+These steps can be simple shell commands, built-in source checkout or build commands, or custom implementations.
+Steps can use and modify the build's properties, treating them as variables to coordinate the progress of the build.</p>
 
-    <span class="pl-c">// Change the presentation direction to be RTL</span>
-    rtl<span class="pl-k">:</span> <span class="pl-c1">false</span>,
+<p>Buildbot supports dynamic reconfiguration without interrupting running builds, allowing adjustments to the build process without downtime.</p>
 
-    <span class="pl-c">// Number of milliseconds between automatically proceeding to the</span>
-    <span class="pl-c">// next slide, disabled when set to 0, this value can be overwritten</span>
-    <span class="pl-c">// by using a data-autoslide attribute on your slides</span>
-    autoSlide<span class="pl-k">:</span> <span class="pl-c1">0</span>,
+<p>\subsection{Multiple Codebases}</p>
 
-    <span class="pl-c">// Enable slide navigation via mouse wheel</span>
-    mouseWheel<span class="pl-k">:</span> <span class="pl-c1">false</span>,
+<p>Buildbot supports the increasingly common practice of building applications from multiple codebases.
+For example, a mobile application might have three different codebases: "Android", "iOS", and "Common" which contains assets common to both implementations.
+Buildbot can monitor all three repositories and schedule android builds with source stamps from the "Android" and "Common" codebases when either one changes; likewise for "iOS".
+Status is reported for the resulting multidimensional revision space.</p>
 
-    <span class="pl-c">// Apply a 3D roll to links on hover</span>
-    rollingLinks<span class="pl-k">:</span> <span class="pl-c1">true</span>,
+<p>\subsection{Scaling and Resiliency}</p>
 
-    <span class="pl-c">// Transition style</span>
-    transition<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>default<span class="pl-pds">'</span></span>, <span class="pl-c">// default/cube/page/concave/zoom/linear/fade/none</span>
+<p>Large-scale Buildbot deployments run with both masters and slaves in a clustered configuration.
+The masters use a shared relational database (MySQL or Postgres) to coordinate their actions.
+Multiple identically-configured slaves allow parallel execution of the same type of build for high-volume deployments and resiliency against slave failure.</p>
 
-    <span class="pl-c">// Transition speed</span>
-    transitionSpeed<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>default<span class="pl-pds">'</span></span>, <span class="pl-c">// default/fast/slow</span>
+<p>The same slave can be configured on multiple masters in a cluster and then connect to any one of those masters.
+Assuming all masters are configured with the same builders, this allows resiliency against master failures.
+The masters also share the load of processing status and logs, which can be substantial in a very busy cluster.</p>
 
-});</pre></div>
+<p>As an extreme example of Buildbot at scale, Mozilla's Buildbot deployment is comprised of over 40 masters and thousands of slaves.
+This configuration handled a check-in every 6 minutes and performed 137 hours of build and test per check-in as of August 2012\cite{mozilla-load}.</p>
 
-<p>Note that the new default vertical centering option will break compatibility with slides that were using transitions with backgrounds (<code>cube</code> and <code>page</code>). To restore the previous behavior, set <code>center</code> to <code>false</code>.</p>
+<p>Only some of Buildbot's data is stored in the database with the remainder stored in on-disk "pickle" files as marshaled Python objects.
+Handling these pickles is inefficient, generating high IO load on the masters and considerably slowing processing.
+More critically, the data on one master's disk is not accessible from another master, so analyzing builds distributed across a cluster is difficult.
+Section~\ref{sec:ongoing-developments} describes ongoing work to address these shortcomings.</p>
 
-<p>The configuration can be updated after initialization using the <code>configure</code> method:</p>
+<p>\subsection{Artifact Handling}</p>
 
-<div class="highlight highlight-source-js"><pre><span class="pl-c">// Turn autoSlide off</span>
-Reveal.configure({ autoSlide<span class="pl-k">:</span> <span class="pl-c1">0</span> });
+<p>For a continuous-integration build, the important result is essentially boolean: did the build or tests fail?
+For a release, the output is a set of binary artifacts---usually packages---ready for installation by end-users.</p>
 
-<span class="pl-c">// Start auto-sliding every 5s</span>
-Reveal.configure({ autoSlide<span class="pl-k">:</span> <span class="pl-c1">5000</span> });</pre></div>
+<p>Buildbot includes support for a few common package formats, although in most cases the package building process is driven by a project-specific script.
+Binary artifacts are generated on slaves as part of a build, and are then transmitted somewhere to make them accessible to users (or to the quality assurance team in a larger organization).</p>
 
-<h3>
-<a id="presentation-size" class="anchor" href="#presentation-size" aria-hidden="true"><span class="octicon octicon-link"></span></a>Presentation Size</h3>
+<p>Artifact upload steps are included with Buildbot, but the steps transfer the file data using a particularly inefficient mechanism (RPC, rather than a streaming protocol).
+For any but the smallest installations, they are inadequate, performing poorly and causing performance issues for other builds on the same master.
+Most installations use SSH (via {\tt scp}) or authenticated HTTP implemented in a shell command instead.</p>
 
-<p>All presentations have a normal size, that is the resolution at which they are authored. The framework will automatically scale presentations uniformly based on this size to ensure that everything fits on any given display or viewport.</p>
+<p>The Buildbot community has discussed integration with external tools\cite{pull547}, but no compelling implementation has yet emerged.</p>
 
-<p>See below for a list of configuration options related to sizing, including default values:</p>
+<p>\subsection{Build Coordination}</p>
 
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
+<p>It is often desirable to perform multiple operations in parallel.
+This can drastically reduce the end-to-end time (the time between a commit and completion of the last resulting job), and save a great deal of redundant computation.</p>
 
-    ...
+<p>Because Buildbot runs each build on a single slave, parallel operations must be represented as multiple builds.
+In programming-language terms, builds form the \emph{basic block} from which more complex control flows are constructed.
+The remaining operations are to "branch" control into multiple builds, and then "merge" control back when those builds are complete.</p>
 
-    <span class="pl-c">// The "normal" size of the presentation, aspect ratio will be preserved</span>
-    <span class="pl-c">// when the presentation is scaled to fit different resolutions. Can be</span>
-    <span class="pl-c">// specified using percentage units.</span>
-    width<span class="pl-k">:</span> <span class="pl-c1">960</span>,
-    height<span class="pl-k">:</span> <span class="pl-c1">700</span>,
+<p>The branching operation is accomplished by configuring a scheduler to queue build requests for multiple builders.
+The resulting set of build requests comprise a \emph{build set} and can be executed in parallel.
+If slave resources are limited, the resulting builds may not actually execute concurrently, but they will be prioritized by Buildbot's multi-level priority configuration.
+This technique provides a simple way to branch the control flow, but does not provide a way to perform some further action after all builds are complete.</p>
 
-    <span class="pl-c">// Factor of the display size that should remain empty around the content</span>
-    margin<span class="pl-k">:</span> <span class="pl-c1">0.1</span>,
+<p>Buildbot provides two mechanisms for more sophisticated coordination: the \emph{Dependent scheduler}, and the \emph{Triggerable scheduler}.
+The Dependent scheduler is configured to watch exactly one "upstream" scheduler.
+When all builds in a buildset initiated by this upstream scheduler complete successfully, the Dependent scheduler initiates its own set of builds.
+For example, a Dependent scheduler might be used to schedule several test builds after all compilation builds are complete, allowing multiple test builds to share the same compiled artifacts.</p>
 
-    <span class="pl-c">// Bounds for smallest/largest possible scale to apply to content</span>
-    minScale<span class="pl-k">:</span> <span class="pl-c1">0.2</span>,
-    maxScale<span class="pl-k">:</span> <span class="pl-c1">1.0</span>
+<p>The Triggerable scheduler initiates builds for its configured builders when triggered by a step in another build.
+That step can either wait for the triggered builds to complete, or continue immediately.
+Waiting for the triggered builds provides a flexible method of merging control flow.
+In a release build, for example, a Triggerable scheduler could be used to build localized versions of the application, one build per locale, triggered by a step in the compile build for each platform.</p>
 
-});</pre></div>
+<p>The most complex control flows are implemented as a single controlling build which triggers the necessary builds in sequence.
+For example, such a build might trigger "compile" builds, followed by "test" builds if compile is successful, and followed by "package" builds, with each initiating builds on different slaves.</p>
 
-<h3>
-<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h3>
+<p>Buildbot has ample room for improvement in support for build coordination.
+First, the framework provides no convenient means to summarize the output of a process that is spread over multiple builds.
+Second, unusual branch and merge conditions, such as continuing when 80\% of locales build successfully, are difficult to implement.
+Finally, a controlling build must be assigned to a slave, even though it never performs any operations on that slave.</p>
 
-<p>Reveal.js doesn't <em>rely</em> on any third party scripts to work but a few optional libraries are included by default. These libraries are loaded as dependencies in the order they appear, for example:</p>
+<p>In general, creating a concurrent build process is similar to assembly-language programming in that high-level constructs are not available.
+Ideally, Buildbot would make common structures like functions, loops, and conditionals available to users to structure these operations.
+This is an as-yet unexplored area for future work.</p>
 
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
-    dependencies<span class="pl-k">:</span> [
-        <span class="pl-c">// Cross-browser shim that fully implements classList - https://github.com/eligrey/classList.js/</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>lib/js/classList.js<span class="pl-pds">'</span></span>, <span class="pl-en">condition</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { <span class="pl-k">return</span> <span class="pl-k">!</span><span class="pl-c1">document</span>.<span class="pl-c1">body</span>.classList; } },
+<p>\section{Ongoing Developments}
+\label{sec:ongoing-developments}</p>
 
-        <span class="pl-c">// Interpret Markdown in &lt;section&gt; elements</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/markdown/marked.js<span class="pl-pds">'</span></span>, <span class="pl-en">condition</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { <span class="pl-k">return</span> <span class="pl-k">!!</span><span class="pl-c1">document</span>.querySelector( <span class="pl-s"><span class="pl-pds">'</span>[data-markdown]<span class="pl-pds">'</span></span> ); } },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/markdown/markdown.js<span class="pl-pds">'</span></span>, <span class="pl-en">condition</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { <span class="pl-k">return</span> <span class="pl-k">!!</span><span class="pl-c1">document</span>.querySelector( <span class="pl-s"><span class="pl-pds">'</span>[data-markdown]<span class="pl-pds">'</span></span> ); } },
+<p>\subsection{Nine: Fully Distributed, Scalable Architecture}</p>
 
-        <span class="pl-c">// Syntax highlight for &lt;code&gt; elements</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/highlight/highlight.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span>, <span class="pl-en">callback</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { hljs.initHighlightingOnLoad(); } },
+<p>Buildbot's developers, including the authors, are working to reformulate the tool as a collection loosely coupled modular components.
+These components are linked by a common database back-end and a message bus.
+They can be combined arbitrarily across multiple hosts to create build, test, and release systems customized to the needs of the user's organization.</p>
 
-        <span class="pl-c">// Zoom in and out with Alt+click</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/zoom-js/zoom.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span>, <span class="pl-en">condition</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { <span class="pl-k">return</span> <span class="pl-k">!!</span><span class="pl-c1">document</span>.<span class="pl-c1">body</span>.classList; } },
+<p>This design allows redundant clustered implementations which are resilient to the failure of any single component and able to scale to meet load requirements.
+The language-agnostic interfaces between components allow integration with other tools in an organization.
+For example, Buildbot messages can be duplicated into an enterprise message bus and used to correlate build activity with other enterprise events.</p>
 
-        <span class="pl-c">// Speaker notes</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/notes/notes.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span>, <span class="pl-en">condition</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { <span class="pl-k">return</span> <span class="pl-k">!!</span><span class="pl-c1">document</span>.<span class="pl-c1">body</span>.classList; } },
+<p>The design also fixes a substantial performance problem in current versions of Buildbot.
+Web status views are currently generated on the buildmaster using inefficient methods which can take up to 0.8s per page and which block all other activity on the master during generation.
+This makes it unwise or impossible to expose the Buildbot web interface to a wide audience.
+The web status views are rendered in the browser in the new design, significantly reducing load on masters.
+As a further advantage, the master can send status updates directly to the web browser so that users see updated results without reloading the page.</p>
 
-        <span class="pl-c">// Remote control your reveal.js presentation using a touch device</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/remotes/remotes.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span>, <span class="pl-en">condition</span><span class="pl-k">:</span> <span class="pl-k">function</span>() { <span class="pl-k">return</span> <span class="pl-k">!!</span><span class="pl-c1">document</span>.<span class="pl-c1">body</span>.classList; } }
-    ]
-});</pre></div>
+<p>The architecture is split into three layers: Database (DB), Message Queue (MQ), and Data.
+The DB layer abstracts a shared relational database, supporting several common database packages.
+The API presented by this layer is Python-only and is closely tied to the database schema.</p>
 
-<p>You can add your own extensions using the same syntax. The following properties are available for each dependency object:</p>
+<p>The MQ layer implements a plug-able message queuing system.
+Like the DB layer, it supports several external backends, including RabbitMQ and ZeroMQ.
+This layer distributes messages among all masters, providing notification of new events.
+As an example, when a build is complete, the master processing that build sends a message.
+Message consumers might react to that message by sending email, notifying users on IRC, or updating the display in a user's browser.</p>
 
-<ul>
-<li>
-<strong>src</strong>: Path to the script to load</li>
-<li>
-<strong>async</strong>: [optional] Flags if the script should load after reveal.js has started, defaults to false</li>
-<li>
-<strong>callback</strong>: [optional] Function to execute when the script has loaded</li>
-<li>
-<strong>condition</strong>: [optional] Function which must return true for the script to be loaded</li>
-</ul>
+<p>The Data layer combines access to stored state and messages, and exposes a well-defined API that can be used both within Buildbot and by external tools.
+Buildbot components use the data API to communicate with other components.
+This layer's design is influenced by REST and is available both via HTTP and as a native Python interface.</p>
 
-<h3>
-<a id="api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h3>
+<p>This reformulation is nicknamed 'nine', because it is targeting Buildbot version 0.9.0.
+It is a significant refactor of the Buildbot codebase, and work is slow due to the need to maintain compatibility.
+As of this writing, most of the Data API is complete, and a proof-of-concept web interface has been written, but all status listeners remain unmodified.
+Time estimates are difficult for any open-source project, but it is likely that the project will be complete in late 2014.</p>
 
-<p>The <code>Reveal</code> class provides a minimal JavaScript API for controlling navigation and reading state:</p>
+<p>\subsection{One-Oh: Well-Defined APIs}</p>
 
-<div class="highlight highlight-source-js"><pre><span class="pl-c">// Navigation</span>
-Reveal.slide( indexh, indexv, indexf );
-Reveal.<span class="pl-c1">left</span>();
-Reveal.<span class="pl-c1">right</span>();
-Reveal.up();
-Reveal.down();
-Reveal.prev();
-Reveal.<span class="pl-c1">next</span>();
-Reveal.prevFragment();
-Reveal.nextFragment();
-Reveal.toggleOverview();
+<p>Buildbot is a fairly mature project and has grown considerably since it was created over a decade ago.
+Much of that growth had been organic, driven by small contributions from users with little coordination of effort.
+The documentation, while describing the configuration options, does not give much detail on how to customize Buildbot---hardly ideal for an application framework.
+Lacking other guidance, users treat the source code as documentation.
+As a result, the effective API surface of Buildbot has become large and ill-defined.
+This has led to difficulty for users in upgrading Buildbot and made development of Buildbot itself difficult as quirks of the existing APIs hinder implementation of new features.</p>
 
-<span class="pl-c">// Retrieves the previous and current slide elements</span>
-Reveal.getPreviousSlide();
-Reveal.getCurrentSlide();
+<p>The fix is to define new APIs, make compatibility commitments about those APIs, and put tools in place to guarantee correctness and compatibility.
+These APIs will include the Data API, as well as Python interfaces for custom change sources, schedulers, steps, and status-handling components.
+The APIs will be fully documented and include thorough unit and interface tests measuring the implementation's behavior and adherence to the documentation.
+Any changes to the API will be handled carefully and communicated clearly to the Buildbot user community.</p>
 
-Reveal.getIndices(); <span class="pl-c">// { h: 0, v: 0 } }</span></pre></div>
+<p>It is unrealistic to expect that the first Buildbot release implementing the Data API will get everything right.
+Rather than commit to strict API compatibility beginning with Buildbot-0.9.0, the developers plan to allow the new APIs to "settle in" throughout the 0.9.x series.
+Once Buildbot reaches version 1.0.0, the APIs will be fixed, and changes will be handled using accepted semantic-versioning techniques\cite{semver}.</p>
 
-<h3>
-<a id="states" class="anchor" href="#states" aria-hidden="true"><span class="octicon octicon-link"></span></a>States</h3>
+<p>\section{Conclusion}</p>
 
-<p>If you set <code>data-state="somestate"</code> on a slide <code>&lt;section&gt;</code>, "somestate" will be applied as a class on the document element when that slide is opened. This allows you to apply broad style changes to the page based on the active slide.</p>
+<p>Buildbot's flexibility can seem daunting for users with simple requirements, particularly in comparison to other tools.
+That same flexibility makes it ideal for large, sophisticated build, test, and release implementations.
+The tool is not without its weaknesses, several of which are indicated above.
+The 'nine' project is an effort to address some of these weaknesses, and lay the groundwork for addressing others.
+The 'one-oh' project will create a more hacker-friendly environment which should have a magnifying effect on the rate of development of new features and capabilities.</p>
 
-<p>Furthermore you can also listen to these changes in state via JavaScript:</p>
+<p>As an open source project, Buildbot welcomes all potential users and contributors.
+The organization is pending membership in the Software Freedom Conservancy.
+It has also participated in the Google Summer of Code for two years and hosts sprints (multi-day programming sessions) at PyCon every year.
+The #buildbot IRC channel is an active and positive communication channel, as is the mailing list.
+This environment has encouraged a broad developer community, with 71 contributors committing code in the last year alone and many more offering advice and support to other users.</p>
 
-<div class="highlight highlight-source-js"><pre>Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>somestate<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
-    <span class="pl-c">// TODO: Sprinkle magic</span>
-}, <span class="pl-c1">false</span> );</pre></div>
+<p>\begin{thebibliography}{13}</p>
 
-<h3>
-<a id="ready-event" class="anchor" href="#ready-event" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ready event</h3>
+<p>\bibitem{ci-feature-matrix}
+\textit{CI Feature Matrix} [online] 2013, \url{<a href="http://confluence.public.thoughtworks.org/display/CC/CI+Feature+Matrix">http://confluence.public.thoughtworks.org/display/CC/CI+Feature+Matrix</a>} (Accessed: 3 March 2013).</p>
 
-<p>The 'ready' event is fired when reveal.js has loaded all (synchronous) dependencies and is ready to start navigating.</p>
+<p>\bibitem{cruisecontrol-getting-started}
+\textit{CruiseControl Getting Started} [online] 2013, \url{<a href="http://cruisecontrol.sourceforge.net/gettingstarted.html">http://cruisecontrol.sourceforge.net/gettingstarted.html</a>} (Accessed: 3 March 2013).</p>
 
-<div class="highlight highlight-source-js"><pre>Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>ready<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>( <span class="pl-smi">event</span> ) {
-    <span class="pl-c">// event.currentSlide, event.indexh, event.indexv</span>
-} );</pre></div>
+<p>\bibitem{config-discussion}
+Garboden, Mark.  \textit{Buildbot config wizard} [online] 2006, \url{<a href="http://comments.gmane.org/gmane.comp.python.buildbot.devel/554">http://comments.gmane.org/gmane.comp.python.buildbot.devel/554</a>} (Accessed: 3 March 2013).</p>
 
-<h3>
-<a id="slide-change-event" class="anchor" href="#slide-change-event" aria-hidden="true"><span class="octicon octicon-link"></span></a>Slide change event</h3>
+<p>\bibitem{bb-introduction}
+\textit{Introduction - Buildbot v0.8.7p1 documentation} [online] 2013, \url{<a href="http://buildbot.net/buildbot/docs/current/manual/introduction.html">http://buildbot.net/buildbot/docs/current/manual/introduction.html</a>} (Accessed: 3 March 2013).</p>
 
-<p>An 'slidechanged' event is fired each time the slide is changed (regardless of state). The event object holds the index values of the current slide as well as a reference to the previous and current slide HTML nodes.</p>
+<p>\bibitem{meet-jenkins}
+\textit{Meet Jenkins - Jenkins - Jenkins Wiki} [online] 2013, \url{<a href="https://wiki.jenkins-ci.org/display/JENKINS/Meet+Jenkins">https://wiki.jenkins-ci.org/display/JENKINS/Meet+Jenkins</a>} (Accessed: 3 March 2013).</p>
 
-<p>Some libraries, like MathJax (see <a href="https://github.com/hakimel/reveal.js/issues/226#issuecomment-10261609">#226</a>), get confused by the transforms and display states of slides. Often times, this can be fixed by calling their update or render function from this callback.</p>
+<p>\bibitem{mozilla-load}
+O'Duinn, John.  \textit{137 hours compute hours every \textasciitilde 6 minutes} [online] 2012, \url{<a href="http://oduinn.com/blog/2012/08/21/137-hours-compute-hours-every-6-minutes/">http://oduinn.com/blog/2012/08/21/137-hours-compute-hours-every-6-minutes/</a>} (Accessed: 3 March 2013).</p>
 
-<div class="highlight highlight-source-js"><pre>Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>slidechanged<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>( <span class="pl-smi">event</span> ) {
-    <span class="pl-c">// event.previousSlide, event.currentSlide, event.indexh, event.indexv</span>
-} );</pre></div>
+<p>\bibitem{artifactory}
+\textit{Open Source Overview} [online] 2013, \url{<a href="http://www.jfrog.com/home/v_artifactory_opensource_overview">http://www.jfrog.com/home/v_artifactory_opensource_overview</a>} (Accessed: 3 March 2013).</p>
 
-<h3>
-<a id="internal-links" class="anchor" href="#internal-links" aria-hidden="true"><span class="octicon octicon-link"></span></a>Internal links</h3>
+<p>\bibitem{jenkins-plugins}
+\textit{Plugins - Jenkins - Jenkins Wiki} [online] 2013, \url{<a href="https://wiki.jenkins-ci.org/display/JENKINS/Plugins">https://wiki.jenkins-ci.org/display/JENKINS/Plugins</a>} (Accessed: 3 March 2013).</p>
 
-<p>It's easy to link between slides. The first example below targets the index of another slide whereas the second targets a slide with an ID attribute (<code>&lt;section id="some-slide"&gt;</code>):</p>
+<p>\bibitem{semver}
+Prestoe-Werner, Tom. \textit{Semantic Versioning 2.0.0-rc.1} [online] 2012, \url{<a href="http://semver.org">http://semver.org</a>} (Accessed: 3 March 2013).</p>
 
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#/2/2<span class="pl-pds">"</span></span>&gt;Link&lt;/<span class="pl-ent">a</span>&gt;
-&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#/some-slide<span class="pl-pds">"</span></span>&gt;Link&lt;/<span class="pl-ent">a</span>&gt;</pre></div>
+<p>\bibitem{success-stories}
+\textit{SuccessStories - Buildbot} [online] 2012, \url{<a href="http://buildbot.net/trac/wiki/SuccessStories">http://buildbot.net/trac/wiki/SuccessStories</a>} (Accessed: 3 March 2013).</p>
 
-<p>You can also add relative navigation links, similar to the built in reveal.js controls, by appending one of the following classes on any element. Note that each element is automatically given an <code>enabled</code> class when it's a valid navigation route based on the current slide.</p>
+<p>\bibitem{pull547}
+Tardy, Pierre.  \textit{ArtifactStorage management design doc} [online] 2012, \url{<a href="https://github.com/buildbot/buildbot/pull/547">https://github.com/buildbot/buildbot/pull/547</a>} (Accessed: 3 March 2013).</p>
 
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>navigate-left<span class="pl-pds">"</span></span>&gt;
-&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>navigate-right<span class="pl-pds">"</span></span>&gt;
-&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>navigate-up<span class="pl-pds">"</span></span>&gt;
-&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>navigate-down<span class="pl-pds">"</span></span>&gt;
-&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>navigate-prev<span class="pl-pds">"</span></span>&gt; <span class="pl-c">&lt;!-- Previous vertical or horizontal slide --&gt;</span>
-&lt;<span class="pl-ent">a</span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>#<span class="pl-pds">"</span></span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>navigate-next<span class="pl-pds">"</span></span>&gt; <span class="pl-c">&lt;!-- Next vertical or horizontal slide --&gt;</span></pre></div>
+<p>\bibitem{tinderbox}
+\textit{Tinderbox | MDN} [online] 2012, \url{<a href="https://developer.mozilla.org/en-US/docs/Tinderbox">https://developer.mozilla.org/en-US/docs/Tinderbox</a>} (Accessed: 3 March 2013)</p>
 
-<h3>
-<a id="alternating-transitions" class="anchor" href="#alternating-transitions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Alternating transitions</h3>
+<p>\bibitem{buildbot-031}
+Warner, Brian.  \textit{Buildbot 0.3.1} [online] 2003, \url{<a href="https://raw.github.com/buildbot/buildbot/master/master/docs/relnotes/0.3.1.txt">https://raw.github.com/buildbot/buildbot/master/master/docs/relnotes/0.3.1.txt</a>} (Accessed: 3 March 2013)</p>
 
-<p>The global presentation transition is set using the <code>transition</code> config value. You can override the global transition for a specific slide by using the <code>data-transition</code> attribute:</p>
+<p>\end{thebibliography}</p>
 
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span> <span class="pl-e">data-transition</span>=<span class="pl-s"><span class="pl-pds">"</span>zoom<span class="pl-pds">"</span></span>&gt;
-    &lt;<span class="pl-ent">h2</span>&gt;This slide will override the presentation transition and zoom!&lt;/<span class="pl-ent">h2</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;
-
-&lt;<span class="pl-ent">section</span> <span class="pl-e">data-transition-speed</span>=<span class="pl-s"><span class="pl-pds">"</span>fast<span class="pl-pds">"</span></span>&gt;
-    &lt;<span class="pl-ent">h2</span>&gt;Choose from three transition speeds: default, fast or slow!&lt;/<span class="pl-ent">h2</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
-
-<p>Note that this does not work with the page and cube transitions.</p>
-
-<h3>
-<a id="fragments" class="anchor" href="#fragments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fragments</h3>
-
-<p>Fragments are used to highlight individual elements on a slide. Every element with the class <code>fragment</code> will be stepped through before moving on to the next slide. Here's an example: <a href="http://lab.hakim.se/reveal-js/#/16">http://lab.hakim.se/reveal-js/#/16</a></p>
-
-<p>The default fragment style is to start out invisible and fade in. This style can be changed by appending a different class to the fragment:</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment grow<span class="pl-pds">"</span></span>&gt;grow&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment shrink<span class="pl-pds">"</span></span>&gt;shrink&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment roll-in<span class="pl-pds">"</span></span>&gt;roll-in&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment fade-out<span class="pl-pds">"</span></span>&gt;fade-out&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment highlight-red<span class="pl-pds">"</span></span>&gt;highlight-red&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment highlight-green<span class="pl-pds">"</span></span>&gt;highlight-green&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment highlight-blue<span class="pl-pds">"</span></span>&gt;highlight-blue&lt;/<span class="pl-ent">p</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
-
-<p>Multiple fragments can be applied to the same element sequentially by wrapping it, this will fade in the text on the first step and fade it back out on the second.</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span>&gt;
-    &lt;<span class="pl-ent">span</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment fade-in<span class="pl-pds">"</span></span>&gt;
-        &lt;<span class="pl-ent">span</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment fade-out<span class="pl-pds">"</span></span>&gt;I'll fade in, then out&lt;/<span class="pl-ent">span</span>&gt;
-    &lt;/<span class="pl-ent">span</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
-
-<p>The display order of fragments can be controlled using the <code>data-fragment-index</code> attribute.</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment<span class="pl-pds">"</span></span> <span class="pl-e">data-fragment-index</span>=<span class="pl-s"><span class="pl-pds">"</span>3<span class="pl-pds">"</span></span>&gt;Appears last&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment<span class="pl-pds">"</span></span> <span class="pl-e">data-fragment-index</span>=<span class="pl-s"><span class="pl-pds">"</span>1<span class="pl-pds">"</span></span>&gt;Appears first&lt;/<span class="pl-ent">p</span>&gt;
-    &lt;<span class="pl-ent">p</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>fragment<span class="pl-pds">"</span></span> <span class="pl-e">data-fragment-index</span>=<span class="pl-s"><span class="pl-pds">"</span>2<span class="pl-pds">"</span></span>&gt;Appears second&lt;/<span class="pl-ent">p</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
-
-<h3>
-<a id="fragment-events" class="anchor" href="#fragment-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fragment events</h3>
-
-<p>When a slide fragment is either shown or hidden reveal.js will dispatch an event.</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>fragmentshown<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>( <span class="pl-smi">event</span> ) {
-    <span class="pl-c">// event.fragment = the fragment DOM element</span>
-} );
-Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>fragmenthidden<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>( <span class="pl-smi">event</span> ) {
-    <span class="pl-c">// event.fragment = the fragment DOM element</span>
-} );</pre></div>
-
-<h3>
-<a id="code-syntax-highlighting" class="anchor" href="#code-syntax-highlighting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code syntax highlighting</h3>
-
-<p>By default, Reveal is configured with <a href="http://softwaremaniacs.org/soft/highlight/en/">highlight.js</a> for code syntax highlighting. Below is an example with clojure code that will be syntax highlighted. When the <code>data-trim</code> attribute is present surrounding whitespace is automatically removed.</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span>&gt;
-    &lt;<span class="pl-ent">pre</span>&gt;&lt;<span class="pl-ent">code</span> <span class="pl-e">data-trim</span>&gt;
-(def lazy-fib
-  (concat
-   [0 1]
-   ((fn rfib [a b]
-        (lazy-cons (+ a b) (rfib b (+ a b)))) 0 1)))
-    &lt;/<span class="pl-ent">code</span>&gt;&lt;/<span class="pl-ent">pre</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
-
-<h3>
-<a id="overview-mode" class="anchor" href="#overview-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview mode</h3>
-
-<p>Press "Esc" key to toggle the overview mode on and off. While you're in this mode, you can still navigate between slides,
-as if you were at 1,000 feet above your presentation. The overview mode comes with a few API hooks:</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>overviewshown<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>( <span class="pl-smi">event</span> ) { <span class="pl-c">/* ... */</span> } );
-Reveal.addEventListener( <span class="pl-s"><span class="pl-pds">'</span>overviewhidden<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>( <span class="pl-smi">event</span> ) { <span class="pl-c">/* ... */</span> } );
-
-<span class="pl-c">// Toggle the overview mode programmatically</span>
-Reveal.toggleOverview();</pre></div>
-
-<h3>
-<a id="fullscreen-mode" class="anchor" href="#fullscreen-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fullscreen mode</h3>
-
-<p>Just press »F« on your keyboard to show your presentation in fullscreen mode. Press the »ESC« key to exit fullscreen mode.</p>
-
-<h3>
-<a id="embedded-media" class="anchor" href="#embedded-media" aria-hidden="true"><span class="octicon octicon-link"></span></a>Embedded media</h3>
-
-<p>Embedded HTML5 <code>&lt;video&gt;</code>/<code>&lt;audio&gt;</code> and YouTube iframes are automatically paused when your navigate away from a slide. This can be disabled by decorating your element with a <code>data-ignore</code> attribute.</p>
-
-<p>Add <code>data-autoplay</code> to your media element if you want it to automatically start playing when the slide is shown:</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">video</span> <span class="pl-e">data-autoplay</span> <span class="pl-e">src</span>=<span class="pl-s"><span class="pl-pds">"</span>http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4<span class="pl-pds">"</span></span>&gt;&lt;/<span class="pl-ent">video</span>&gt;</pre></div>
-
-<h2>
-<a id="pdf-export" class="anchor" href="#pdf-export" aria-hidden="true"><span class="octicon octicon-link"></span></a>PDF Export</h2>
-
-<p>Presentations can be exported to PDF via a special print stylesheet. This feature requires that you use <a href="http://google.com/chrome">Google Chrome</a>.
-Here's an example of an exported presentation that's been uploaded to SlideShare: <a href="http://www.slideshare.net/hakimel/revealjs-13872948">http://www.slideshare.net/hakimel/revealjs-13872948</a>.</p>
-
-<ol>
-<li>Open your presentation with <a href="https://github.com/hakimel/reveal.js/blob/master/css/print/pdf.css">css/print/pdf.css</a> included on the page. The default index HTML lets you add <em>print-pdf</em> anywhere in the query to include the stylesheet, for example: <a href="http://lab.hakim.se/reveal-js?print-pdf">lab.hakim.se/reveal-js?print-pdf</a>.</li>
-<li>Open the in-browser print dialog (CMD+P).</li>
-<li>Change the <strong>Destination</strong> setting to <strong>Save as PDF</strong>.</li>
-<li>Change the <strong>Layout</strong> to <strong>Landscape</strong>.</li>
-<li>Change the <strong>Margins</strong> to <strong>None</strong>.</li>
-<li>Click <strong>Save</strong>.</li>
-</ol>
-
-<p><img src="https://s3.amazonaws.com/hakim-static/reveal-js/pdf-print-settings.png" alt="Chrome Print Settings"></p>
-
-<h2>
-<a id="theming" class="anchor" href="#theming" aria-hidden="true"><span class="octicon octicon-link"></span></a>Theming</h2>
-
-<p>The framework comes with a few different themes included:</p>
-
-<ul>
-<li>default: Gray background, white text, blue links</li>
-<li>beige: Beige background, dark text, brown links</li>
-<li>sky: Blue background, thin white text, blue links</li>
-<li>night: Black background, thick white text, orange links</li>
-<li>serif: Cappuccino background, gray text, brown links</li>
-<li>simple: White background, black text, blue links</li>
-</ul>
-
-<p>Each theme is available as a separate stylesheet. To change theme you will need to replace <strong>default</strong> below with your desired theme name in index.html:</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">link</span> <span class="pl-e">rel</span>=<span class="pl-s"><span class="pl-pds">"</span>stylesheet<span class="pl-pds">"</span></span> <span class="pl-e">href</span>=<span class="pl-s"><span class="pl-pds">"</span>css/theme/default.css<span class="pl-pds">"</span></span> <span class="pl-e">id</span>=<span class="pl-s"><span class="pl-pds">"</span>theme<span class="pl-pds">"</span></span>&gt;</pre></div>
-
-<p>If you want to add a theme of your own see the instructions here: <a href="https://github.com/hakimel/reveal.js/blob/master/css/theme/README.md">/css/theme/README.md</a>.</p>
-
-<h2>
-<a id="speaker-notes" class="anchor" href="#speaker-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Speaker Notes</h2>
-
-<p>reveal.js comes with a speaker notes plugin which can be used to present per-slide notes in a separate browser window. The notes window also gives you a preview of the next upcoming slide so it may be helpful even if you haven't written any notes. Press the 's' key on your keyboard to open the notes window.</p>
-
-<p>By default notes are written using standard HTML, see below, but you can add a <code>data-markdown</code> attribute to the <code>&lt;aside&gt;</code> to write them using Markdown.</p>
-
-<div class="highlight highlight-text-html-basic"><pre>&lt;<span class="pl-ent">section</span>&gt;
-    &lt;<span class="pl-ent">h2</span>&gt;Some Slide&lt;/<span class="pl-ent">h2</span>&gt;
-
-    &lt;<span class="pl-ent">aside</span> <span class="pl-e">class</span>=<span class="pl-s"><span class="pl-pds">"</span>notes<span class="pl-pds">"</span></span>&gt;
-        Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
-    &lt;/<span class="pl-ent">aside</span>&gt;
-&lt;/<span class="pl-ent">section</span>&gt;</pre></div>
-
-<h2>
-<a id="server-side-speaker-notes" class="anchor" href="#server-side-speaker-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Server Side Speaker Notes</h2>
-
-<p>In some cases it can be desirable to run notes on a separate device from the one you're presenting on. The Node.js-based notes plugin lets you do this using the same note definitions as its client side counterpart. Include the required scripts by adding the following dependencies:</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
-    ...
-
-    dependencies<span class="pl-k">:</span> [
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>socket.io/socket.io.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/notes-server/client.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> }
-    ]
-});</pre></div>
-
-<p>Then:</p>
-
-<ol>
-<li>Install <a href="http://nodejs.org/">Node.js</a>
-</li>
-<li>Run <code>npm install</code>
-</li>
-<li>Run <code>node plugin/notes-server</code>
-</li>
-</ol>
-
-<h2>
-<a id="multiplexing" class="anchor" href="#multiplexing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multiplexing</h2>
-
-<p>The multiplex plugin allows your audience to view the slides of the presentation you are controlling on their own phone, tablet or laptop. As the master presentation navigates the slides, all client presentations will update in real time. See a demo at <a href="http://revealjs.jit.su">http://revealjs.jit.su/</a>.</p>
-
-<p>The multiplex plugin needs the following 3 things to operate:</p>
-
-<ol>
-<li>Master presentation that has control</li>
-<li>Client presentations that follow the master</li>
-<li>Socket.io server to broadcast events from the master to the clients</li>
-</ol>
-
-<p>More details:</p>
-
-<h4>
-<a id="master-presentation" class="anchor" href="#master-presentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Master presentation</h4>
-
-<p>Served from a static file server accessible (preferably) only to the presenter. This need only be on your (the presenter's) computer. (It's safer to run the master presentation from your own computer, so if the venue's Internet goes down it doesn't stop the show.) An example would be to execute the following commands in the directory of your master presentation:</p>
-
-<ol>
-<li><code>npm install node-static</code></li>
-<li><code>static</code></li>
-</ol>
-
-<p>If you want to use the speaker notes plugin with you master presentation then make sure you have the speaker notes plugin configured correctly along with the configuration shown below, then execute <code>node plugin/notes-server</code> in the directory of your master presentation. The configuration below will cause it to connect to the socket.io server as a master, as well as launch your speaker-notes/static-file server.</p>
-
-<p>You can then access your master presentation at <code>http://localhost:1947</code></p>
-
-<p>Example configuration:</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
-    <span class="pl-c">// other options</span>
-
-    multiplex<span class="pl-k">:</span> {
-        <span class="pl-c">// Example values. Generate your own.</span>
-        secret<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>13652805320794272084<span class="pl-pds">'</span></span>, <span class="pl-c">// Obtained from the socket.io server. Gives this (the master) control of the presentation</span>
-        id<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>1ea875674b17ca76<span class="pl-pds">'</span></span>, <span class="pl-c">// Obtained from socket.io server</span>
-        url<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>revealjs.jit.su:80<span class="pl-pds">'</span></span> <span class="pl-c">// Location of socket.io server</span>
-    },
-
-    <span class="pl-c">// Optional libraries used to extend on reveal.js</span>
-    dependencies<span class="pl-k">:</span> [
-        <span class="pl-c">// other deps</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.10/socket.io.min.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/multiplex/master.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-
-        <span class="pl-c">// and if you want speaker notes</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/notes-server/client.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> }
-    ]
-});</pre></div>
-
-<h4>
-<a id="client-presentation" class="anchor" href="#client-presentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Client presentation</h4>
-
-<p>Served from a publicly accessible static file server. Examples include: GitHub Pages, Amazon S3, Dreamhost, Akamai, etc. The more reliable, the better. Your audience can then access the client presentation via <code>http://example.com/path/to/presentation/client/index.html</code>, with the configuration below causing them to connect to the socket.io server as clients.</p>
-
-<p>Example configuration:</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
-    <span class="pl-c">// other options</span>
-
-    multiplex<span class="pl-k">:</span> {
-        <span class="pl-c">// Example values. Generate your own.</span>
-        secret<span class="pl-k">:</span> <span class="pl-c1">null</span>, <span class="pl-c">// null so the clients do not have control of the master presentation</span>
-        id<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>1ea875674b17ca76<span class="pl-pds">'</span></span>, <span class="pl-c">// id, obtained from socket.io server</span>
-        url<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>revealjs.jit.su:80<span class="pl-pds">'</span></span> <span class="pl-c">// Location of socket.io server</span>
-    },
-
-    <span class="pl-c">// Optional libraries used to extend on reveal.js</span>
-    dependencies<span class="pl-k">:</span> [
-        <span class="pl-c">// other deps</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.10/socket.io.min.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/multiplex/client.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> }
-    ]
-});</pre></div>
-
-<h4>
-<a id="socketio-server" class="anchor" href="#socketio-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Socket.io server</h4>
-
-<p>Server that receives the slideChanged events from the master presentation and broadcasts them out to the connected client presentations. This needs to be publicly accessible. You can run your own socket.io server with the commands:</p>
-
-<ol>
-<li><code>npm install</code></li>
-<li><code>node plugin/multiplex</code></li>
-</ol>
-
-<p>Or you use the socket.io server at <a href="http://revealjs.jit.su">http://revealjs.jit.su</a>.</p>
-
-<p>You'll need to generate a unique secret and token pair for your master and client presentations. To do so, visit <code>http://example.com/token</code>, where <code>http://example.com</code> is the location of your socket.io server. Or if you're going to use the socket.io server at <a href="http://revealjs.jit.su">http://revealjs.jit.su</a>, visit <a href="http://revealjs.jit.su/token">http://revealjs.jit.su/token</a>.</p>
-
-<p>You are very welcome to point your presentations at the Socket.io server running at <a href="http://revealjs.jit.su">http://revealjs.jit.su</a>, but availability and stability are not guaranteed. For anything mission critical I recommend you run your own server. It is simple to deploy to nodejitsu, heroku, your own environment, etc.</p>
-
-<h5>
-<a id="socketio-server-as-file-static-server" class="anchor" href="#socketio-server-as-file-static-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>socket.io server as file static server</h5>
-
-<p>The socket.io server can play the role of static file server for your client presentation, as in the example at <a href="http://revealjs.jit.su">http://revealjs.jit.su</a>. (Open <a href="http://revealjs.jit.su">http://revealjs.jit.su</a> in two browsers. Navigate through the slides on one, and the other will update to match.)</p>
-
-<p>Example configuration:</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
-    <span class="pl-c">// other options</span>
-
-    multiplex<span class="pl-k">:</span> {
-        <span class="pl-c">// Example values. Generate your own.</span>
-        secret<span class="pl-k">:</span> <span class="pl-c1">null</span>, <span class="pl-c">// null so the clients do not have control of the master presentation</span>
-        id<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>1ea875674b17ca76<span class="pl-pds">'</span></span>, <span class="pl-c">// id, obtained from socket.io server</span>
-        url<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>example.com:80<span class="pl-pds">'</span></span> <span class="pl-c">// Location of your socket.io server</span>
-    },
-
-    <span class="pl-c">// Optional libraries used to extend on reveal.js</span>
-    dependencies<span class="pl-k">:</span> [
-        <span class="pl-c">// other deps</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.10/socket.io.min.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/multiplex/client.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> }
-    ]</pre></div>
-
-<p>It can also play the role of static file server for your master presentation and client presentations at the same time (as long as you don't want to use speaker notes). (Open <a href="http://revealjs.jit.su">http://revealjs.jit.su</a> in two browsers. Navigate through the slides on one, and the other will update to match. Navigate through the slides on the second, and the first will update to match.) This is probably not desirable, because you don't want your audience to mess with your slides while you're presenting. ;)</p>
-
-<p>Example configuration:</p>
-
-<div class="highlight highlight-source-js"><pre>Reveal.initialize({
-    <span class="pl-c">// other options</span>
-
-    multiplex<span class="pl-k">:</span> {
-        <span class="pl-c">// Example values. Generate your own.</span>
-        secret<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>13652805320794272084<span class="pl-pds">'</span></span>, <span class="pl-c">// Obtained from the socket.io server. Gives this (the master) control of the presentation</span>
-        id<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>1ea875674b17ca76<span class="pl-pds">'</span></span>, <span class="pl-c">// Obtained from socket.io server</span>
-        url<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>example.com:80<span class="pl-pds">'</span></span> <span class="pl-c">// Location of your socket.io server</span>
-    },
-
-    <span class="pl-c">// Optional libraries used to extend on reveal.js</span>
-    dependencies<span class="pl-k">:</span> [
-        <span class="pl-c">// other deps</span>
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.10/socket.io.min.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/multiplex/master.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> },
-        { src<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>plugin/multiplex/client.js<span class="pl-pds">'</span></span>, async<span class="pl-k">:</span> <span class="pl-c1">true</span> }
-    ]
-});</pre></div>
-
-<h2>
-<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
-
-<p>The <strong>basic setup</strong> is for authoring presentations only. The <strong>full setup</strong> gives you access to all reveal.js features as well as the development tasks needed to make changes to the source.</p>
-
-<h3>
-<a id="basic-setup" class="anchor" href="#basic-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic setup</h3>
-
-<p>The core of reveal.js is very easy to install. You'll simply need to download a copy of this repository and open the index.html file directly in your browser.</p>
-
-<ol>
-<li><p>Download a copy of reveal.js from <a href="https://github.com/hakimel/reveal.js/archive/master.zip">https://github.com/hakimel/reveal.js/archive/master.zip</a></p></li>
-<li><p>Unzip and replace the example contents in index.html with your own</p></li>
-<li><p>Open index.html in a browser to view it</p></li>
-</ol>
-
-<h3>
-<a id="full-setup" class="anchor" href="#full-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Full setup</h3>
-
-<p>Some reveal.js features, like external markdown, require that presentations run from a local web server. The following instructions will set up such a server as well as all of the development tasks needed to make edits to the reveal.js source code.</p>
-
-<ol>
-<li><p>Install <a href="http://nodejs.org/">Node.js</a></p></li>
-<li><p>Install <a href="http://gruntjs.com/getting-started#installing-the-cli">Grunt</a></p></li>
-<li><p>Clone the reveal.js repository</p></li>
-</ol>
-
-<pre><code>$ git clone git@github.com:hakimel/reveal.js.git
-</code></pre>
-
-<ol>
-<li>Install dependencies</li>
-</ol>
-
-<pre><code>$ npm install
-</code></pre>
-
-<ol>
-<li>Serve the presentation and monitor source files for changes</li>
-</ol>
-
-<pre><code>$ grunt serve
-</code></pre>
-
-<ol>
-<li>Open <a href="http://localhost:8000">http://localhost:8000</a> to view your presentation</li>
-</ol>
-
-<h3>
-<a id="folder-structure" class="anchor" href="#folder-structure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Folder Structure</h3>
-
-<ul>
-<li>
-<strong>css/</strong> Core styles without which the project does not function</li>
-<li>
-<strong>js/</strong> Like above but for JavaScript</li>
-<li>
-<strong>plugin/</strong> Components that have been developed as extensions to reveal.js</li>
-<li>
-<strong>lib/</strong> All other third party assets (JavaScript, CSS, fonts)</li>
-</ul>
-
-<h2>
-<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
-
-<p>MIT licensed</p>
-
-<p>Copyright (C) 2013 Hakim El Hattab, <a href="http://hakim.se">http://hakim.se</a></p>
+<p>\end{document}</p>
       </section>
 
     </div>
